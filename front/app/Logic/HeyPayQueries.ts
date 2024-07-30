@@ -1,7 +1,6 @@
 import { HeyPayContractABI } from "../ABI/HeyPayContractABI";
 import { HeypayAddress, TokenMaps } from "../Constants/Const";
 import {ClaimRow} from "../Interfaces/types"
-import { publicClient } from "../Utils/client";
 export const getClaimables = async(emailKec:`0x${string}`):Promise<ClaimRow[]>=>{
         // const totalClaimables = await publicClient.readContract({
         //   address: HeypayAddress,

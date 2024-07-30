@@ -15,7 +15,6 @@ import { getClaimables } from '../Logic/HeyPayQueries';
 import { HeypayAddress, TokenMaps } from '../Constants/Const';
 import { HeyPayContractABI } from '../ABI/HeyPayContractABI';
 import { Single_Day } from 'next/font/google';
-import { simulateConfig } from '../Utils/client';
 import { useAbstraxionAccount } from '@burnt-labs/abstraxion';
   interface ClaimResults{
     token: string,
@@ -41,10 +40,13 @@ const SideBar = () => {
         }
         else{
           
-          let ClaimRow:ClaimRow = {sender: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
-             metadata:"Hey", 
-             amount:240,
-             ...TokenMaps.get("0x036CbD53842c5426634e7929541eC2318f3dCF7e")!};
+          let ClaimRow:ClaimRow = {
+            sender: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+            metadata: "Hey",
+            amount: 240,
+            ...TokenMaps.get("0x036CbD53842c5426634e7929541eC2318f3dCF7e")!,
+            decimals: 6
+          };
            setClaimables([ClaimRow]);
           //  setClaimables([]);
         }

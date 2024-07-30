@@ -4,8 +4,6 @@ import { useEffect, useState } from 'react'
 import { token, ValidCoins} from "../Constants/Const";
 import { CircularProgress } from "@mui/material";
 import useNotification from "../Components/SnackBar";
-import { publicClient } from '../Utils/client';
-import { erc20Abi, keccak256, parseEther, toHex } from 'viem';
 import { useAccount, useWriteContract,useWaitForTransactionReceipt } from 'wagmi';
 import { HeyPayContractABI } from '../ABI/HeyPayContractABI';
 

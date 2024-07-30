@@ -18,23 +18,14 @@ const NavBar = () => {
         </div>
         <ul className='flex space-x-6'>
         </ul>
-        <div className='flex flex-1 '>
-
-        </div>
-        <div className='flex flex-row-reverse'>
-          <Button 
-          className=''
-          onClick={() => {
+        <div className='flex flex-1 flex-row-reverse'>
+            <div onClick={() => {
             setShowAbstraxion(true);
-          }}
-          structure="base"
-          >
-            <div className=" pl-5 pr-5 pt-1 pb-1 hover:bg-[#ADE8F3] justify-center align-middle border-2 rounded-lg border-[#2D3D50] text-[#2D3D50]">
+          }} className=" pl-5 pr-5 pt-1 pb-1 hover:bg-[#ADE8F3] justify-center align-middle border-2 rounded-lg border-[#2D3D50] text-[#2D3D50]">
               {account.bech32Address ? ("Logout") : (
                 "CONNECT"
               )}
             </div>
-          </Button>
         </div>
         <Abstraxion
           onClose={() => { 
