@@ -15,7 +15,7 @@ import { getClaimables } from '../Logic/HeyPayQueries';
 import { HeypayAddress, TokenMaps } from '../Constants/Const';
 import { HeyPayContractABI } from '../ABI/HeyPayContractABI';
 import { Single_Day } from 'next/font/google';
-import { useAbstraxionAccount } from '@burnt-labs/abstraxion';
+import { useAbstraxionAccount, useAbstraxionSigningClient } from '@burnt-labs/abstraxion';
   interface ClaimResults{
     token: string,
     amount: string,
@@ -27,34 +27,67 @@ const SideBar = () => {
     const divRef = useRef(null)
     const { data: account } = useAbstraxionAccount();
     const {email,jwt,setJwt} =  useUserContext();
+    const { client } = useAbstraxionSigningClient();
     const sendNotification = useNotification();
     const [claimables, setClaimables] = useState<ClaimRow[]|undefined>(undefined);
     const [loading, setLoading] = useState(false);
     async function ReadClaimables() {
+      console.log("Read Claimable of Email:", email)
+      const claimsMsg = {
+        claims: {
+          email: email!
+        }
+      };
       try {
-        if(email){
-            console.log("Ekec:", keccak256(toHex(email)));
-            console.log("Email :", email);
-            
-            setClaimables(await getClaimables(keccak256(toHex(email))));
-        }
-        else{
-          
-          let ClaimRow:ClaimRow = {
-            sender: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
-            metadata: "Hey",
-            amount: 240,
-            ...TokenMaps.get("0x036CbD53842c5426634e7929541eC2318f3dCF7e")!,
-            decimals: 6
-          };
-           setClaimables([ClaimRow]);
-          //  setClaimables([]);
-        }
-       //setClaimables()
+        const SendRes = await client?.queryContractSmart(
+          HeypayAddress,
+          claimsMsg,
+        );
+        console.log("Claim Message Result: ", SendRes)
+        const claims = SendRes.claims as unknown as ClaimResults[];
+        setClaimables(claims.map(x=> {
+          return {
+            sender: x.sender,
+            metadata: x.memo,
+            symbol:TokenMaps.get(x.token)?.symbol,
+            token_address: x.token,
+            amount: Number(x.amount),
+            decimals: 18,
+            logo:TokenMaps.get(x.token)?.logo,
+            price:TokenMaps.get(x.token)?.price
+          } as ClaimRow
+        }))
       } catch (error) {
         // eslint-disable-next-line no-console -- No UI exists yet to display errors
         console.log(error);
       }
+
+
+
+      // try {
+      //   if(email){
+      //       console.log("Ekec:", keccak256(toHex(email)));
+      //       console.log("Email :", email);
+            
+      //       setClaimables(await getClaimables(keccak256(toHex(email))));
+      //   }
+      //   else{
+          
+      //     let ClaimRow:ClaimRow = {
+      //       sender: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      //       metadata: "Hey",
+      //       amount: 240,
+      //       ...TokenMaps.get("0x036CbD53842c5426634e7929541eC2318f3dCF7e")!,
+      //       decimals: 6
+      //     };
+      //      setClaimables([ClaimRow]);
+      //     //  setClaimables([]);
+      //   }
+      //  //setClaimables()
+      // } catch (error) {
+      //   // eslint-disable-next-line no-console -- No UI exists yet to display errors
+      //   console.log(error);
+      // }
     }
     async function ClaimTokens() {
       event?.preventDefault();
@@ -102,9 +135,11 @@ const SideBar = () => {
     //   }
     // }, [claimIsError]);
     useEffect(()=>{
-      if(email&&account)
+      if( email && client){
+        console.log("Email is not null:", email);
         ReadClaimables();
-    },[email,account.bech32Address]);
+      }
+    },[email,client]);
     useEffect(() => {
       if (divRef.current) {
         // @ts-ignore: Unreachable code error

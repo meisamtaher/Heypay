@@ -1,16 +1,20 @@
 
 'use client'
 import { useEffect, useState } from 'react'
-import { token, ValidCoins} from "../Constants/Const";
+import { HeypayAddress, token, ValidCoins} from "../Constants/Const";
 import { CircularProgress } from "@mui/material";
 import useNotification from "../Components/SnackBar";
+import type { ExecuteResult} from "@cosmjs/cosmwasm-stargate";
+type ExecuteResultOrUndefined = ExecuteResult | undefined;
 import { useAccount, useWriteContract,useWaitForTransactionReceipt } from 'wagmi';
 import { HeyPayContractABI } from '../ABI/HeyPayContractABI';
+import { useAbstraxionAccount, useAbstraxionSigningClient } from '@burnt-labs/abstraxion';
 
 const Send = () => {
   const sendNotification = useNotification();
   const [amount, setAmount] = useState(0);
-  const account = useAccount();
+  const { data: account } = useAbstraxionAccount();
+  const { client } = useAbstraxionSigningClient();
   const [reciever, setReciever] = useState<string|undefined>();
   const [balance, setBalance] = useState<number|undefined>(undefined);
   const [allowance, setAllowance] = useState<number|undefined>(undefined);
@@ -21,102 +25,91 @@ const Send = () => {
   const {isLoading:approvePending,isSuccess:ApproveSuccess}= useWaitForTransactionReceipt({hash:tokenHash});
   const { data: heypayHash, writeContract:heyPayWriteContract } = useWriteContract();
   const {isLoading:DepositPending,isSuccess:DepositSuccess}= useWaitForTransactionReceipt({hash:heypayHash});
-
+  const [executeResult, setExecuteResult] =
+    useState<ExecuteResultOrUndefined>(undefined);
   const [balanceLoding, setBalanceLoading] = useState(false);
   const [selectedtoken, setSelectedToken] = useState<token>(ValidCoins[0]);
   async function ReadBalance() {
     setBalanceLoading(true);
-    // try {
-    //   if(account.isConnected && selectedtoken.token_address){
-    //     const balance = await publicClient.readContract({
-    //       address: selectedtoken.token_address as `0x${string}`,
-    //       abi: erc20Abi,
-    //       functionName: 'balanceOf',
-    //       args:[account!.address!]
-    //     })
-    //     const allowance = await publicClient.readContract({
-    //       address: selectedtoken.token_address as `0x${string}`,
-    //       abi: erc20Abi,
-    //       functionName: 'allowance',
-    //       args:[account!.address!, HeypayAddress]
-    //     })
-    //     setAllowance(Number(allowance)/selectedtoken.decimals);
-    //     setBalance(Number(balance)/selectedtoken.decimals);
-    //   }
-    // } catch (error) {
-    //   console.log(error);
-    // }finally{
+    const readBalanceMsg = {
+      balance: {
+        address: account.bech32Address
+      }
+    };
+    try {
+      const SendRes = await client?.queryContractSmart(
+        selectedtoken.token_address,
+        readBalanceMsg,
+      );
+      console.log(SendRes);
+      setBalance(SendRes!.balance);
+    } catch (error) {
+      console.log(error);
+    }finally{
       setBalanceLoading(false);
-    // }
+
+    }
   }
   async function Pay() {
     event?.preventDefault();
     setLoading(true);
+    const msg = {
+      send :{
+        contract:HeypayAddress,
+        amount: amount.toString(),
+        msg:btoa(`{"email":"${reciever!}","memo":"${transactionMessage}"}`)
+      }
+    };
     try {
-    //   if(allowance&&balance && allowance>=amount){
-    //     console.log("Send Transaction");
-
-    //     console.log("Email:", reciever);
-    //     console.log("Email bytes:", keccak256(toHex(reciever!)));
-    //     heyPayWriteContract({
-    //       address: HeypayAddress as `0x${string}`,
-    //       abi: HeyPayContractABI,
-    //       functionName: 'Deposit',
-    //       args: [ keccak256(toHex(reciever!)),
-    //         toHex(transactionMessage),
-    //         selectedtoken.token_address as `0x${string}`,
-    //         BigInt(amount * selectedtoken.decimals)
-    //       ]
-    //     });
-    //   }
-    //   else{
-    //     console.log("Send Approve");
-    //     tokenWriteContract({
-    //       address: selectedtoken.token_address as `0x${string}`,
-    //       abi: erc20Abi,
-    //       functionName: 'approve',
-    //       args: [HeypayAddress,BigInt(amount* selectedtoken.decimals)
-    //       ]
-    //     });
-    //   }
-    //   // console.log("1: ",keccak256(toHex(reciever!)))
-    //   // console.log("2: ",toHex(transactionMessage))
-    //   // console.log("3: ",selectedtoken.token_address)
-    //   // console.log("4: ",BigInt(amount * selectedtoken.decimals))
-
-    //   // if(1)
-    //     // sendNotification({msg:"Hey!! Token Sent successfully",variant:"success"});
-    //   // else{
-    //   //   sendNotification({msg:"Unknown Error occured",variant:"error"});
-    //   // }
+      const SendRes = await client?.execute(
+        account.bech32Address,
+        selectedtoken.token_address,
+        msg,
+        {
+          amount: [{ amount: "0", denom: "uxion" }],
+          gas: "500000",
+        },
+        "",
+        []
+      );
+      console.log(SendRes)
+      setExecuteResult(SendRes);
+      console.log(executeResult);
+      if(SendRes)
+        sendNotification({msg:"Hey!! Token Sent successfully",variant:"success"});
+      else{
+        sendNotification({msg:"Unknown Error occured",variant:"error"});
+      }
       
     } catch (error) {
-    //   // eslint-disable-next-line no-console -- No UI exists yet to display errors
-    //   console.log(error);
+      // eslint-disable-next-line no-console -- No UI exists yet to display errors
+      console.log(error);
       sendNotification({msg:`Error sending token${error}`,variant:"error"});
     } finally {
       setLoading(false);
     }
   }
-  useEffect(() => {
-    if(ApproveSuccess){
-      sendNotification({msg:"Hey!! Token Sent successfully",variant:"success"});
+  // useEffect(() => {
+  //   if(ApproveSuccess){
+  //     sendNotification({msg:"Hey!! Token Sent successfully",variant:"success"});
+  //     ReadBalance();
+  //   }
+  // }, [DepositSuccess]);
+  // useEffect(() => {
+  //   if(ApproveSuccess){
+  //     sendNotification({msg:"Hey!! Token Approved successfully",variant:"success"});
+  //     ReadBalance();
+  //   }
+  // }, [ApproveSuccess]);
+  // // ReadBalance();
+  // useEffect(()=>{
+  //   ReadBalance();
+  // },[approvePending]);
+  useEffect(()=>{
+    if(selectedtoken!.token_address && account!.bech32Address){
       ReadBalance();
     }
-  }, [DepositSuccess]);
-  useEffect(() => {
-    if(ApproveSuccess){
-      sendNotification({msg:"Hey!! Token Approved successfully",variant:"success"});
-      ReadBalance();
-    }
-  }, [ApproveSuccess]);
-  // ReadBalance();
-  useEffect(()=>{
-    ReadBalance();
-  },[approvePending]);
-  useEffect(()=>{
-    ReadBalance();
-  },[selectedtoken, account.address]);
+  },[selectedtoken!.token_address, account!.bech32Address]);
   return (
     <div className="flex flex-col bg-[#D0F6FF] w-full pt-20 items-center ">
       <div className="min-w-[40rem]  bg-[#81D6E3] rounded-xl max-w-80 border-[0.1rem] shadow-[0.1rem_0.1rem_0_0_rgba(0,0,0,1)] border-black">
@@ -181,8 +174,8 @@ const Send = () => {
               />
             </div>
             <div className="flex flex-row-reverse w-full ">
-            {(!approvePending && !DepositPending )?<button disabled={!reciever|| !amount || !selectedtoken} className="w-[10rem] h-[3rem] bg-sky-600 hover:bg-sky-500 disabled:bg-gray-500 disabled:text-slate-700  border-gray-500 text-white  rounded text-xl font-bold" >
-              {(allowance!>=amount!)?"Send":"Approve"}</button>:<CircularProgress></CircularProgress>}
+            {true?<button disabled={!reciever|| !amount || !selectedtoken} className="w-[10rem] h-[3rem] bg-sky-600 hover:bg-sky-500 disabled:bg-gray-500 disabled:text-slate-700  border-gray-500 text-white  rounded text-xl font-bold" >
+              Send</button>:<CircularProgress></CircularProgress>}
               {/* <button className="w-[10rem] h-[3rem] bg-sky-600 hover:bg-sky-500 disabled:bg-gray-500 disabled:text-slate-700  border-gray-500 text-white  rounded text-xl">Transfer</button> */}
             </div>
           </div>
