@@ -146,7 +146,7 @@ const SideBar = () => {
         window.google.accounts.id.initialize({
           nonce: account!.bech32Address,
           client_id:
-            '226077901873-96cek128l90clri0i55c0ii88bjbcsge.apps.googleusercontent.com',
+            '965798652522-bn240k47q576vhqon2tuk0feg20bbt0u.apps.googleusercontent.com',
           // @ts-ignore: Unreachable code error
           callback: (res, error) => {
             console.log('res', res)
