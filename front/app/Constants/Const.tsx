@@ -1,5 +1,5 @@
 export const HeypayAddress = 
-"xion1wxp3q98za6w9a2g5t2hvrdlh5lvasv0f3p085m0rquk9u4c8xeeqvyrnx6";
+"xion1xww6n9uc56a857790q8c7fcfl9wcr9crdmhwfrmmjkaz607ga2fqgqmssw";
 export interface token{
   token_address:string,
   logo:string,
