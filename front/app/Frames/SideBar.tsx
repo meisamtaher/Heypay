@@ -93,6 +93,14 @@ const SideBar = () => {
       event?.preventDefault();
       console.log("Claim Tokens")
       setLoading(true);
+      const msg = {
+        claim :{
+          msg:{
+            jwt: jwt!,
+            aud: "project-live-7e4a3221-79cd-4f34-ac1d-fedac4bde13e"
+          }
+        }
+      };
       try {
         if(jwt){
           const jwtDecoded = preDecode(jwt)
@@ -114,6 +122,21 @@ const SideBar = () => {
           //   args:[header,payload,signature,digest],
           //   gas:BigInt(4000000)
           // })
+          const SendRes = await client?.execute(
+            account.bech32Address,
+            HeypayAddress,
+            msg,
+            {
+              amount: [{ amount: "0", denom: "uxion" }],
+              gas: "500000",
+            },
+            "",
+            []
+          );
+          console.log(SendRes)
+          if(SendRes?.transactionHash){
+            sendNotification({msg:"Hey!!! Successfully Claimed all the tokens",variant:"success"});
+          }
         }
       } catch (error) {
         // eslint-disable-next-line no-console -- No UI exists yet to display errors
